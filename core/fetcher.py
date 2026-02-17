@@ -69,18 +69,23 @@ def fetch_all_chapters(skip_cache: bool = False,
                        max_workers: int = 8,
                        max_rps: float = 2.0,
                        resume: bool = True,
-                       progress_callback: callable | None = None):
+                       progress_callback: callable | None = None,
+                       books_to_fetch: list[tuple[str, int]] | None = None):
     """
     Returns dict[(book, chapter)] = text or None.
     If resume=True, we still fetch everything, but cached chapters are reused.
     """
     limiter = RateLimiter(max_rps) if max_rps > 0 else None
 
+    # If no specific books are provided, default to all books from config
+    if books_to_fetch is None:
+        books_to_fetch = BOOKS_DATA
+
     tasks = []
     results = {}
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        for book_name, total_chapters in BOOKS_DATA:
+        for book_name, total_chapters in books_to_fetch:
             for ch in range(1, total_chapters + 1):
                 future = executor.submit(
                     fetch_single_chapter,

@@ -15,7 +15,3 @@ PyGObject
 
 # Optional: type hints support (not required, but nice)
 typing_extensions
-
-# Optional: PDF booklet generation (for make_booklet.py)
-weasyprint
-pypdf
