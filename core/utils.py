@@ -1,26 +1,26 @@
+# ---------------------------------------------------------------------------
+# NET Bible (2nd Ed) Builder
+# Copyright (C) 2026 The net-bible-builder Authors
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# ---------------------------------------------------------------------------
+
 from pathlib import Path
-from datetime import datetime
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-CACHE_DIR = BASE_DIR / "cache"
-CACHE_DIR.mkdir(exist_ok=True)
-LOG_FILE = BASE_DIR / "errors.log"
-BUILD_DIR = BASE_DIR / "build"
-BUILD_DIR.mkdir(exist_ok=True)
-
+from .config import CACHE_DIR, ERROR_LOG_PATH
 
 def log_error(msg: str):
-    timestamp = datetime.now().isoformat(timespec="seconds")
-    with LOG_FILE.open("a", encoding="utf-8") as f:
-        f.write(f"[{timestamp}] {msg}\n")
-
+    """Appends a message to the error log file."""
+    try:
+        with ERROR_LOG_PATH.open("a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+    except Exception as e:
+        print(f"Failed to write to log file: {e}")
 
 def chapter_cache_path(book: str, chapter: int) -> Path:
-    safe = book.replace(" ", "_").lower()
-    return CACHE_DIR / f"{safe}_{chapter}.html"
-
-
-def chapter_xhtml_path(book: str, chapter: int) -> Path:
-    safe = book.replace(" ", "_").lower()
-    return BUILD_DIR / f"{safe}_{chapter}.xhtml"
-
+    """Generates the cache path for a given book and chapter."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    safe_book_name = book.replace(" ", "_").lower()
+    return CACHE_DIR / f"{safe_book_name}_{chapter}.html"

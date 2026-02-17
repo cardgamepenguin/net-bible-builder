@@ -17,7 +17,7 @@ from gi.repository import Gtk, GLib  # type: ignore
 
 from core.builder import build_epub
 from core.validate import validate_epub
-from core.config import DEFAULT_OUTPUT
+from core.config import DEFAULT_OUTPUT, BOOKS_DATA, OLD_TESTAMENT_BOOKS, NEW_TESTAMENT_BOOKS
 
 
 class BuilderWindow(Gtk.Window):
@@ -64,6 +64,9 @@ class BuilderWindow(Gtk.Window):
         self.rps_spin = Gtk.SpinButton(adjustment=self.rps_adj, climb_rate=0.1, digits=1)
         h_rps.pack_start(self.rps_spin, False, False, 0)
 
+        # Book Selection
+        self.setup_book_selection(vbox)
+
         # Build button
         self.build_button = Gtk.Button(label="Build EPUB")
         self.build_button.connect("clicked", self.on_build_clicked)
@@ -87,6 +90,51 @@ class BuilderWindow(Gtk.Window):
         scrolled.add(self.log_view)
         vbox.pack_start(scrolled, True, True, 0)
 
+    def setup_book_selection(self, parent_box):
+        frame = Gtk.Frame(label="Books to Include")
+        parent_box.pack_start(frame, True, True, 5)
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        vbox.set_margin_top(5)
+        vbox.set_margin_bottom(5)
+        vbox.set_margin_start(5)
+        vbox.set_margin_end(5)
+        frame.add(vbox)
+
+        # Preset buttons
+        hbox_presets = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        vbox.pack_start(hbox_presets, False, False, 0)
+
+        btn_all = Gtk.Button(label="All")
+        btn_all.connect("clicked", self.on_select_books, "all")
+        hbox_presets.pack_start(btn_all, True, True, 0)
+
+        btn_none = Gtk.Button(label="None")
+        btn_none.connect("clicked", self.on_select_books, "none")
+        hbox_presets.pack_start(btn_none, True, True, 0)
+
+        btn_ot = Gtk.Button(label="Old Testament")
+        btn_ot.connect("clicked", self.on_select_books, "ot")
+        hbox_presets.pack_start(btn_ot, True, True, 0)
+
+        btn_nt = Gtk.Button(label="New Testament")
+        btn_nt.connect("clicked", self.on_select_books, "nt")
+        hbox_presets.pack_start(btn_nt, True, True, 0)
+
+        # Book list
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        vbox.pack_start(scrolled, True, True, 0)
+
+        self.book_checkboxes = {}
+        grid = Gtk.Grid(column_spacing=10, row_spacing=5)
+        scrolled.add(grid)
+        for i, (book_name, _) in enumerate(BOOKS_DATA):
+            check = Gtk.CheckButton(label=book_name)
+            check.set_active(True)
+            grid.attach(check, i % 3, i // 3, 1, 1)
+            self.book_checkboxes[book_name] = check
+
     def append_log(self, text: str):
         def _append():
             end_iter = self.log_buffer.get_end_iter()
@@ -107,6 +155,20 @@ class BuilderWindow(Gtk.Window):
         self.progress_bar.set_text(f"{current} / {total}")
         return False  # for GLib.idle_add
 
+    def on_select_books(self, button, selection_type):
+        if selection_type == "all":
+            for checkbox in self.book_checkboxes.values():
+                checkbox.set_active(True)
+        elif selection_type == "none":
+            for checkbox in self.book_checkboxes.values():
+                checkbox.set_active(False)
+        elif selection_type == "ot":
+            for book, checkbox in self.book_checkboxes.items():
+                checkbox.set_active(book in OLD_TESTAMENT_BOOKS)
+        elif selection_type == "nt":
+            for book, checkbox in self.book_checkboxes.items():
+                checkbox.set_active(book in NEW_TESTAMENT_BOOKS)
+
     def on_build_clicked(self, button):
         self.build_button.set_sensitive(False)
         self._reset_progress()
@@ -120,6 +182,16 @@ class BuilderWindow(Gtk.Window):
         validate = self.validate_check.get_active()
         max_workers = self.workers_spin.get_value_as_int()
         max_rps = self.rps_spin.get_value()
+
+        books_to_build = []
+        for book_name, total_chapters in BOOKS_DATA:
+            if self.book_checkboxes[book_name].get_active():
+                books_to_build.append((book_name, total_chapters))
+
+        if not books_to_build:
+            self.append_log("Error: No books selected. Please select at least one book to build.")
+            self.build_button.set_sensitive(True)
+            return
 
         def progress_handler(stage, current, total):
             GLib.idle_add(self._update_progress, stage, current, total)
@@ -135,6 +207,7 @@ class BuilderWindow(Gtk.Window):
                     max_rps=max_rps,
                     resume=True,
                     progress_callback=progress_handler,
+                    books_to_build=books_to_build,
                 )
                 self.append_log(f"Build complete: {output}")
 

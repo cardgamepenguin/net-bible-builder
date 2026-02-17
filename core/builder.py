@@ -31,7 +31,8 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
                max_rps: float = 2.0,
                resume: bool = True,
                cover_path: str | None = "cover.png",
-               progress_callback: callable | None = None):
+               progress_callback: callable | None = None,
+               books_to_build: list[tuple[str, int]] | None = None):
 
     output_path = Path(output_path)
 
@@ -44,6 +45,10 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
     copyright_html = COPYRIGHT_FILE.read_text(encoding="utf-8")
     style = STYLE_FILE.read_text(encoding="utf-8")
 
+    # If no specific books are provided, default to all books from config
+    if books_to_build is None:
+        books_to_build = BOOKS_DATA
+
     # 1. Fetch all chapters
     fetch_results = fetch_all_chapters(
         skip_cache=skip_cache,
@@ -51,7 +56,8 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
         max_workers=max_workers,
         max_rps=max_rps,
         resume=resume,
-        progress_callback=progress_callback
+        progress_callback=progress_callback,
+        books_to_fetch=books_to_build
     )
 
     # 2. Build EPUB
@@ -81,8 +87,8 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
     chapters_list = []
     
     # 3. Main Loop
-    total_books = len(BOOKS_DATA)
-    for i, (book_name, total) in enumerate(BOOKS_DATA):
+    total_books = len(books_to_build)
+    for i, (book_name, total) in enumerate(books_to_build):
 
         if progress_callback:
             # Report progress for compiling this book
@@ -91,7 +97,7 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
         # --- Cross-Book Linking Logic ---
         # Previous Book Info
         if i > 0:
-            prev_book_name, prev_book_total = BOOKS_DATA[i-1]
+            prev_book_name, prev_book_total = books_to_build[i-1]
             prev_file = make_filename(prev_book_name)
             prev_book_link = f"{prev_file}#ch{prev_book_total}"
             prev_book_label = f"&laquo; {prev_book_name}"
@@ -100,8 +106,8 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
             prev_book_label = "&laquo; Intro"
 
         # Next Book Info
-        if i < len(BOOKS_DATA) - 1:
-            next_book_name, _ = BOOKS_DATA[i+1]
+        if i < len(books_to_build) - 1:
+            next_book_name, _ = books_to_build[i+1]
             next_file = make_filename(next_book_name)
             next_book_link = f"{next_file}#ch1"
             next_book_label = f"{next_book_name} &raquo;"

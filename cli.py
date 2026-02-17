@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from core.builder import build_epub
 from core.validate import validate_epub
-from core.config import DEFAULT_OUTPUT
+from core.config import DEFAULT_OUTPUT, BOOKS_DATA, OLD_TESTAMENT_BOOKS, NEW_TESTAMENT_BOOKS
 
 
 def create_cli_progress_handler():
@@ -75,10 +75,48 @@ def main():
         action="store_true",
         help="Run epubcheck after building"
     )
+    parser.add_argument(
+        "--books",
+        type=str,
+        help="Comma-separated list of books to include (e.g., 'Genesis,Exodus,John')."
+    )
+    parser.add_argument(
+        "--only-ot",
+        action="store_true",
+        help="Include only Old Testament books."
+    )
+    parser.add_argument(
+        "--only-nt",
+        action="store_true",
+        help="Include only New Testament books."
+    )
 
     args = parser.parse_args()
 
     resume = not args.no_resume
+
+    # --- Determine which books to build ---
+    books_to_build = None  # Default to all books
+    if args.only_ot:
+        print("Selecting Old Testament books...")
+        books_to_build = [book for book in BOOKS_DATA if book[0] in OLD_TESTAMENT_BOOKS]
+    elif args.only_nt:
+        print("Selecting New Testament books...")
+        books_to_build = [book for book in BOOKS_DATA if book[0] in NEW_TESTAMENT_BOOKS]
+    elif args.books:
+        print(f"Selecting custom books: {args.books}")
+        books_to_build = []
+        all_book_map = {book[0].lower(): book for book in BOOKS_DATA}
+        requested_books = [b.strip().lower() for b in args.books.split(',')]
+
+        for req_book in requested_books:
+            if req_book in all_book_map:
+                books_to_build.append(all_book_map[req_book])
+            else:
+                print(f"Warning: Book '{req_book}' not found and will be skipped.")
+    if books_to_build is not None and not books_to_build:
+        print("Error: No valid books selected. Aborting.")
+        return
 
     progress_handler = create_cli_progress_handler()
 
@@ -90,6 +128,7 @@ def main():
         max_rps=args.max_rps,
         resume=resume,
         progress_callback=progress_handler,
+        books_to_build=books_to_build,
     )
 
     if args.validate:
