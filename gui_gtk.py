@@ -69,6 +69,14 @@ class BuilderWindow(Gtk.Window):
         self.build_button.connect("clicked", self.on_build_clicked)
         vbox.pack_start(self.build_button, False, False, 10)
 
+        # Progress Bar
+        self.progress_label = Gtk.Label(label="")
+        vbox.pack_start(self.progress_label, False, False, 0)
+
+        self.progress_bar = Gtk.ProgressBar()
+        self.progress_bar.set_show_text(True)
+        vbox.pack_start(self.progress_bar, False, False, 5)
+
         # Log view
         self.log_view = Gtk.TextView()
         self.log_view.set_editable(False)
@@ -87,8 +95,21 @@ class BuilderWindow(Gtk.Window):
 
         GLib.idle_add(_append)
 
+    def _reset_progress(self):
+        self.progress_label.set_text("")
+        self.progress_bar.set_fraction(0)
+        self.progress_bar.set_text("")
+
+    def _update_progress(self, stage: str, current: int, total: int):
+        fraction = current / total if total > 0 else 0
+        self.progress_label.set_text(stage)
+        self.progress_bar.set_fraction(fraction)
+        self.progress_bar.set_text(f"{current} / {total}")
+        return False  # for GLib.idle_add
+
     def on_build_clicked(self, button):
         self.build_button.set_sensitive(False)
+        self._reset_progress()
         self.append_log("Starting build...")
 
         output = self.output_entry.get_text().strip()
@@ -100,6 +121,9 @@ class BuilderWindow(Gtk.Window):
         max_workers = self.workers_spin.get_value_as_int()
         max_rps = self.rps_spin.get_value()
 
+        def progress_handler(stage, current, total):
+            GLib.idle_add(self._update_progress, stage, current, total)
+
         def worker():
             try:
                 self.append_log("Building EPUB...")
@@ -110,6 +134,7 @@ class BuilderWindow(Gtk.Window):
                     max_workers=max_workers,
                     max_rps=max_rps,
                     resume=True,
+                    progress_callback=progress_handler,
                 )
                 self.append_log(f"Build complete: {output}")
 
@@ -120,7 +145,10 @@ class BuilderWindow(Gtk.Window):
             except Exception as e:
                 self.append_log(f"Error: {e}")
             finally:
-                GLib.idle_add(self.build_button.set_sensitive, True)
+                def final_ui_update():
+                    self.build_button.set_sensitive(True)
+                    return False
+                GLib.idle_add(final_ui_update)
 
         threading.Thread(target=worker, daemon=True).start()
 
