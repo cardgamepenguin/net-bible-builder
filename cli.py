@@ -1,3 +1,13 @@
+# ---------------------------------------------------------------------------
+# NET Bible (2nd Ed) Builder
+# Copyright (C) 2026 Brian Johnson
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# ---------------------------------------------------------------------------
+
 import argparse
 
 from core.builder import build_epub
