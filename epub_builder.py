@@ -72,5 +72,5 @@ def build_epub():
     book.add_item(epub.EpubNav())
     book.spine = ["nav"] + all_items
 
-    epub.write_epub("epub/NET_Bible_2nd_Ed_Complete_a.epub", book)
+    epub.write_epub("epub/NET_Bible_NT_Sample.epub", book)
 

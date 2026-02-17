@@ -23,7 +23,8 @@ def main():
     parser.add_argument(
         "--force-refresh",
         action="store_true",
-        help="Alias for --skip-cache (for clarity)"
+        dest="skip_cache",
+        help="Alias for --skip-cache (for clarity)",
     )
     parser.add_argument(
         "--max-workers",
@@ -50,12 +51,11 @@ def main():
 
     args = parser.parse_args()
 
-    skip_cache = args.skip_cache or args.force_refresh
     resume = not args.no_resume
 
     build_epub(
         output_path=args.output,
-        skip_cache=skip_cache,
+        skip_cache=args.skip_cache,
         retries=3,
         max_workers=args.max_workers,
         max_rps=args.max_rps,
@@ -68,4 +68,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
