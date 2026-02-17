@@ -1,0 +1,18 @@
+# Core functionality
+requests
+ebooklib
+tqdm
+
+# Parallelism helpers (standard library handles most, but futures backport helps older Python)
+futures; python_version < "3.2"
+
+# GTK GUI (PyGObject)
+PyGObject
+
+# Optional: EPUB validation (if using epubcheck via subprocess, no pip package needed)
+# If you want a Python wrapper instead, uncomment:
+# epubcheck
+
+# Optional: type hints support (not required, but nice)
+typing_extensions
+
