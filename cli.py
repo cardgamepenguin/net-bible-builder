@@ -1,8 +1,35 @@
+# ---------------------------------------------------------------------------
+# NET Bible (2nd Ed) Builder
+# Copyright (C) 2026 The net-bible-builder Authors
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# ---------------------------------------------------------------------------
+
 import argparse
+from tqdm import tqdm
 
 from core.builder import build_epub
 from core.validate import validate_epub
 from core.config import DEFAULT_OUTPUT
+
+
+def create_cli_progress_handler():
+    """Creates a closure for handling progress updates with tqdm bars."""
+    progress_bars = {}
+
+    def handler(stage: str, current: int, total: int):
+        if stage not in progress_bars:
+            unit = "ch" if "Fetching" in stage else "book"
+            progress_bars[stage] = tqdm(total=total, desc=stage, unit=unit, ncols=80)
+
+        bar = progress_bars[stage]
+        bar.n = current
+        bar.refresh()
+
+    return handler
 
 
 def main():
@@ -23,7 +50,8 @@ def main():
     parser.add_argument(
         "--force-refresh",
         action="store_true",
-        help="Alias for --skip-cache (for clarity)"
+        dest="skip_cache",
+        help="Alias for --skip-cache (for clarity)",
     )
     parser.add_argument(
         "--max-workers",
@@ -50,22 +78,25 @@ def main():
 
     args = parser.parse_args()
 
-    skip_cache = args.skip_cache or args.force_refresh
     resume = not args.no_resume
+
+    progress_handler = create_cli_progress_handler()
 
     build_epub(
         output_path=args.output,
-        skip_cache=skip_cache,
+        skip_cache=args.skip_cache,
         retries=3,
         max_workers=args.max_workers,
         max_rps=args.max_rps,
         resume=resume,
+        progress_callback=progress_handler,
     )
 
     if args.validate:
+        print("Validating EPUB...")
         validate_epub(args.output)
+    print(f"\nDone. Wrote {args.output}")
 
 
 if __name__ == "__main__":
     main()
-

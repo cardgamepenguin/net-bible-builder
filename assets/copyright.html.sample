@@ -1,0 +1,20 @@
+# --- NEW: Copyright Page with Open Source Credits ---
+    copyright_html = '''
+    <div style="text-align: center; margin-top: 3em;">
+        <h1>THE NET BIBLE®</h1>
+        <h2>Second Edition</h2>
+        <h3>Reader's Version</h3>
+        <br/><br/>
+        <p><strong>Scripture Text</strong></p>
+        <p>Copyright © 1996–2019 by Biblical Studies Press, L.L.C.</p>
+        <p>All rights reserved. Scripture quoted by permission.</p>
+        <br/>
+        <hr style="width: 50%; margin: 1.5em auto; border: 0; border-top: 1px solid #ccc;">
+        <br/>
+        <p><strong>About This Edition</strong></p>
+        <p>This "Gold Master" Reader's Version was procedurally generated using open-source Python tools.</p>
+        <p>The build script was authored using Google Gemini (AI). It fetches the text dynamically via the <em>labs.bible.org</em> API to create a clean, distraction-free reading experience.</p>
+        <p>The code for this generator is available under the GPLv3 License at:</p>
+        <p><a href="https://github.com/cardgamepenguin/net-bible-builder">github.com/YOUR_USERNAME/net-bible-builder</a></p>
+    </div>
+    '''

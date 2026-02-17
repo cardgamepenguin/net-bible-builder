@@ -1,9 +1,18 @@
+# ---------------------------------------------------------------------------
+# NET Bible (2nd Ed) Builder
+# Copyright (C) 2026 The net-bible-builder Authors
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# ---------------------------------------------------------------------------
+
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
-from tqdm import tqdm  # <--- CHANGE 1: Add this import
 
 from .config import API_URL, USER_AGENT, BOOKS_DATA
 from .utils import chapter_cache_path, log_error
@@ -59,7 +68,8 @@ def fetch_all_chapters(skip_cache: bool = False,
                        retries: int = 3,
                        max_workers: int = 8,
                        max_rps: float = 2.0,
-                       resume: bool = True):
+                       resume: bool = True,
+                       progress_callback: callable | None = None):
     """
     Returns dict[(book, chapter)] = text or None.
     If resume=True, we still fetch everything, but cached chapters are reused.
@@ -78,12 +88,14 @@ def fetch_all_chapters(skip_cache: bool = False,
                 )
                 tasks.append((future, book_name, ch))
 
-        # --- CHANGE 2: Wrap 'tasks' in tqdm for the progress bar ---
-        for future, book_name, ch in tqdm(tasks, desc="Fetching chapters", unit="ch"):
+        total_tasks = len(tasks)
+        for i, (future, book_name, ch) in enumerate(tasks):
             try:
                 text = future.result()
                 results[(book_name, ch)] = text
             except Exception as e:
                 log_error(f"Failed to fetch {book_name} {ch}: {e}")
+            if progress_callback:
+                progress_callback("Fetching", i + 1, total_tasks)
 
     return results

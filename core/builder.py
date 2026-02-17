@@ -1,8 +1,23 @@
+# ---------------------------------------------------------------------------
+# NET Bible (2nd Ed) Builder
+# Copyright (C) 2026 The net-bible-builder Authors
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# ---------------------------------------------------------------------------
+
 from pathlib import Path
 from ebooklib import epub
-from tqdm import tqdm
 from .config import BOOKS_DATA, DEFAULT_OUTPUT
 from .fetcher import fetch_all_chapters
+
+# --- Path to asset files ---
+SCRIPT_DIR = Path(__file__).parent
+ASSETS_DIR = SCRIPT_DIR.parent / "assets"
+COPYRIGHT_FILE = ASSETS_DIR / "copyright.html"
+STYLE_FILE = ASSETS_DIR / "style.css"
 
 def make_filename(book: str) -> str:
     # Example: "1 John" -> "1_john.xhtml"
@@ -15,23 +30,31 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
                max_workers: int = 8,
                max_rps: float = 2.0,
                resume: bool = True,
-               cover_path: str | None = "cover.png"):
+               cover_path: str | None = "cover.png",
+               progress_callback: callable | None = None):
 
     output_path = Path(output_path)
 
+    # --- Externalized Content ---
+    if not COPYRIGHT_FILE.exists() or not STYLE_FILE.exists():
+        raise FileNotFoundError(
+            f"Could not find required asset files in {ASSETS_DIR}. "
+            f"Expected: {COPYRIGHT_FILE.name}, {STYLE_FILE.name}"
+        )
+    copyright_html = COPYRIGHT_FILE.read_text(encoding="utf-8")
+    style = STYLE_FILE.read_text(encoding="utf-8")
+
     # 1. Fetch all chapters
-    total_chapters = sum(ch for _, ch in BOOKS_DATA)
-    print(f"Fetching {total_chapters} chapters...")
     fetch_results = fetch_all_chapters(
         skip_cache=skip_cache,
         retries=retries,
         max_workers=max_workers,
         max_rps=max_rps,
-        resume=resume
+        resume=resume,
+        progress_callback=progress_callback
     )
 
     # 2. Build EPUB
-    print("Building EPUB with Copyright & Navigation...")
     book = epub.EpubBook()
     book.set_identifier("net-bible-2nd-ed-final")
     book.set_title("NET Bible (2nd Edition)")
@@ -43,64 +66,12 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
         ext = Path(cover_path).suffix.lower()
         book.set_cover(f"cover{ext}", Path(cover_path).read_bytes())
 
-    # --- NEW: Copyright Page ---
-    copyright_html = '''
-    <div style="text-align: center; margin-top: 3em;">
-        <h1>THE NET BIBLE®</h1>
-        <h2>Second Edition</h2>
-        <h3>Reader's Version</h3>
-        <br/><br/>
-        <p>Copyright © 1996–2019 by Biblical Studies Press, L.L.C.</p>
-        <p>All rights reserved.</p>
-        <br/>
-        <p>Scripture quoted by permission.</p>
-        <p>This noteless version was compiled for personal use via the labs.bible.org open API.</p>
-        <p>For more information, visit <a href="https://netbible.com">netbible.com</a>.</p>
-    </div>
-    '''
+    # Copyright Page
     c_copyright = epub.EpubHtml(title='Copyright', file_name='copyright.xhtml', lang='en')
     c_copyright.content = copyright_html
     book.add_item(c_copyright)
 
-    # CSS - Enhanced for Grid, Nav, and Intro Text
-    style = """
-    body { font-family: serif; line-height: 1.4; }
-    h1 { text-align: center; margin-top: 1em; margin-bottom: 0.5em; }
-    
-    /* Force page break before chapters */
-    .break-before { page-break-before: always; }
-    
-    /* Intro Text Style */
-    .intro-text { 
-        font-style: italic; color: #555; 
-        margin: 1em 10%; text-align: center; font-size: 0.85em; 
-    }
-
-    /* Chapter Grid at start of Book */
-    .chapter-grid { 
-        display: flex; flex-wrap: wrap; justify-content: center; 
-        gap: 8px; margin-bottom: 2em; padding: 10px;
-    }
-    .grid-link { 
-        display: inline-block; padding: 8px 12px; background: #eee; 
-        text-decoration: none; color: #333; border-radius: 4px; 
-        font-size: 0.9em; font-family: sans-serif;
-    }
-    
-    /* Prev/Next Navigation Bar */
-    .chapter-nav { 
-        display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 1.5em; font-family: sans-serif; font-size: 0.9em;
-        border-bottom: 1px solid #ccc; padding-bottom: 10px;
-    }
-    .nav-link { 
-        text-decoration: none; color: #0066cc; font-weight: bold; 
-        padding: 5px;
-    }
-    .nav-center { 
-        text-decoration: none; color: #666; font-size: 0.9em;
-    }
-    """
+    # CSS
     css_item = epub.EpubItem(
         uid="style", file_name="style.css",
         media_type="text/css", content=style
@@ -110,10 +81,13 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
     chapters_list = []
     
     # 3. Main Loop
-    pbar = tqdm(BOOKS_DATA, desc="Compiling Books", unit="book")
+    total_books = len(BOOKS_DATA)
+    for i, (book_name, total) in enumerate(BOOKS_DATA):
 
-    for i, (book_name, total) in enumerate(pbar):
-        
+        if progress_callback:
+            # Report progress for compiling this book
+            progress_callback("Compiling", i + 1, total_books)
+
         # --- Cross-Book Linking Logic ---
         # Previous Book Info
         if i > 0:
@@ -227,4 +201,3 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
     book.add_item(epub.EpubNav())
 
     epub.write_epub(output_path, book, {})
-    print(f"\nDone. Wrote {output_path}")

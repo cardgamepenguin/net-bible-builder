@@ -1,0 +1,36 @@
+body { font-family: serif; line-height: 1.4; }
+h1 { text-align: center; margin-top: 1em; margin-bottom: 0.5em; }
+
+/* Force page break before chapters */
+.break-before { page-break-before: always; }
+
+/* Intro Text Style */
+.intro-text { 
+    font-style: italic; color: #555; 
+    margin: 1em 10%; text-align: center; font-size: 0.85em; 
+}
+
+/* Chapter Grid at start of Book */
+.chapter-grid { 
+    display: flex; flex-wrap: wrap; justify-content: center; 
+    gap: 8px; margin-bottom: 2em; padding: 10px;
+}
+.grid-link { 
+    display: inline-block; padding: 8px 12px; background: #eee; 
+    text-decoration: none; color: #333; border-radius: 4px; 
+    font-size: 0.9em; font-family: sans-serif;
+}
+
+/* Prev/Next Navigation Bar */
+.chapter-nav { 
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.5em; font-family: sans-serif; font-size: 0.9em;
+    border-bottom: 1px solid #ccc; padding-bottom: 10px;
+}
+.nav-link { 
+    text-decoration: none; color: #0066cc; font-weight: bold; 
+    padding: 5px;
+}
+.nav-center { 
+    text-decoration: none; color: #666; font-size: 0.9em;
+}
