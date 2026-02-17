@@ -227,3 +227,6 @@ epub
 # Temporarily focusing on digital first
 impose*py
 make_booklet.py
+
+# Configuration file
+config.py
