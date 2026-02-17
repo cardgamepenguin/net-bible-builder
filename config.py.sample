@@ -1,3 +1,4 @@
+# Books you want in your ebook - below is all 66 books and their number of chapters
 BOOKS_DATA = [
     ("Genesis", 50), ("Exodus", 40), ("Leviticus", 27), ("Numbers", 36),
     ("Deuteronomy", 34), ("Joshua", 24), ("Judges", 21), ("Ruth", 4),
