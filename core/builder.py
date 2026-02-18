@@ -62,7 +62,7 @@ def build_epub(output_path: str | Path = DEFAULT_OUTPUT,
 
     # 2. Build EPUB
     book = epub.EpubBook()
-    book.set_identifier("net-bible-2nd-ed-final")
+    book.set_identifier("net-bible-2nd-edition")
     book.set_title("NET Bible (2nd Edition)")
     book.set_language("en")
     book.add_author("Biblical Studies Press")
